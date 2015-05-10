@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+
+# -*- coding: utf-8 -*-
+"""
+Stats command line tool 
+"""
+
+import sys
+import re
+import argparse
+from statools import normalized_pairs
+from statools import functions
+from statools import plot
+
+class IncorrectFile(Exception):
+	'''
+	Defines an error if the file does not correspond to the PDB format (either old or
+	new version: *.pdb or *.ent)
+	'''
+	
+	def __init__(self, filename):
+		self.filename = filename
+	
+	def __str__(self):
+		return 'The file %s is damaged or does not have a correct format to be parsed.\nPlease enter a PDB file format: *.ent or *.pdb.'%(self.filename)
+
+class IncorrectDirectory(Exception):
+	'''
+	Defines an error if the file corresponds to a directory
+	'''
+	
+	def __init__(self, filename):
+		self.filename = filename
+	
+	def __str__(self):
+		return ' %s is a Directory dummmass!!\nPlease enter a PDB file format: *.ent or *.pdb.'%(self.filename)
+
+
+if __name__=='__main__':    	
+	parser = argparse.ArgumentParser(description='\
+	Statools is a Python Package for the Calculus of Statistical Potentials for Protein Structure. Stats is the executable command that\
+	calculates the statistical potential for each residue of the protein and outputs either \
+	the energy/residue or a nice-visual plot of energies. Calculus have been done making use \
+	of another Python third-packages (Biopython, numpy, MatPlotlab, etc.) and following a\
+	neighbour-joining algorithm.\n Authors: Jorge Roel and Cristina Leal. Year: 2015.')
+	parser.add_argument('-i', '--input', dest='infile', required=True, action='store', nargs='?',help='Input file. Input file needs to have a PDB Format containg\
+	protein atoms and its coordinates (either *.pdb or *.ent format).')
+	parser.add_argument('-o', '--output', dest='outfile', action='store', nargs='?', default=None, type=argparse.FileType('w'), help='Outfiles the Position-Residue\
+	and its associated statistical potential. If not defined, results are printed to standard output.')
+	parser.add_argument('-r', '--radius', type=int, dest='radius', action='store', nargs='?', default=10,help='Defines\
+	the desired radius of neighbor-joining algorithm. If not set, the default radius given is 10Å. Radius has to be set to either: 5, 10, 15, 20, or 25Å.')
+	parser.add_argument('-v', '--visual', dest='visual', action='store_true', default=False, help="If this argument \
+	is defined, results are plotted and saved as 'filename.png' in the working directory. If not used, plot is not showed")
+	args = parser.parse_args()
+	
+		
+	### INPUT
+	if args.infile.endswith('.pdb'):
+
+		infile = args.infile
+	
+	## OUTPUT IF -V: VISUALIZE PLOT
+		if args.visual:
+			plot.make_plot(infile, args.radius)
+
+
+	## OUTPUT IF -O: IF NOT DEFINED: STD.OUT, IF -O IS DEFINED OUTPUT IN OUTFILE 	
+		if args.outfile:
+			out_fd = args.outfile
+			dictio = functions.get_potential(infile,args.radius)
+			residues = sorted(dictio)
+			for residue in residues:
+				out_fd.write("%s\t\t%s\n"%(residue,dictio.get(residue)))
+
+		else:
+			dictio = functions.get_potential(infile,args.radius)
+			residues = sorted(dictio)
+			sys.stderr.write("------------------------------------------\n\t** WELCOME TO STATS **\
+			\n------------------------------------------\n")
+			sys.stderr.write("Nearest-Neighbour algorithm radius: %sÅ\n"%(args.radius))
+			sys.stderr.write("------------------------------------------\nTotal Resiudes:\t%s\
+			\n------------------------------------------\n"%(str(len(functions.get_potential(infile,args.radius)))))
+			sys.stderr.write('Residue \t Potential E (kcal/mol) \n------------------------------------------\n')
+			
+			for residue in residues:
+				sys.stderr.write("%s\t\t%s\n"%(residue,dictio.get(residue)))
+
+	elif args.infile.endswith('.ent'):
+
+		infile = args.infile
+	
+	## OUTPUT IF -V: VISUALIZE PLOT
+		if args.visual:
+			plot.make_plot(infile, args.radius)
+
+
+	## OUTPUT IF -O: IF NOT DEFINED: STD.OUT, IF -O IS DEFINED OUTPUT IN OUTFILE 	
+		if args.outfile:
+			out_fd = args.outfile
+			dictio = functions.get_potential(infile,args.radius)
+			residues = sorted(dictio)
+			for residue in residues:
+				out_fd.write("%s\t\t%s\n"%(residue,dictio.get(residue)))
+
+		else:
+			dictio = functions.get_potential(infile,args.radius)
+			residues = sorted(dictio)
+			sys.stderr.write("------------------------------------------\n\t** WELCOME TO STATS **\
+			\n------------------------------------------\n")
+			sys.stderr.write("Neighbour-joining algorithm radius: %sÅ\n"%(args.radius))
+			sys.stderr.write("------------------------------------------\nTotal Resiudes:\t%s\
+			\n------------------------------------------\n"%(str(len(functions.get_potential(infile,args.radius)))))
+			sys.stderr.write('Residue \t Potential E (kcal/mol) \n------------------------------------------\n')
+			
+			for residue in residues:
+				sys.stderr.write("%s\t\t%s\n"%(residue,dictio.get(residue)))
+	
+	elif args.infile.endswith('/'):
+		infile = args.infile
+		sys.stderr.write(str(IncorrectDirectory(infile))+'\n')
+
+	else:
+		infile = args.infile 
+		sys.stderr.write(str(IncorrectFile(infile))+'\n')
